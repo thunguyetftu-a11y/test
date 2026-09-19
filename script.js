@@ -56,12 +56,20 @@ function renderResults(rows) {
   resultsHead.replaceChildren(); resultsBody.replaceChildren(); if (!rows.length) { resultTitle.textContent = 'No results'; resultsStatus.textContent = 'No matching records were found.'; resultsBody.innerHTML = '<tr><td colspan="100%"><div class="empty-state">No matching data found.</div></td></tr>'; return; }
   resultTitle.textContent = `${rows.length} result${rows.length === 1 ? '' : 's'}`; resultsStatus.textContent = 'Results updated.'; const header = document.createElement('tr'); state.columns.forEach((column) => { const th = document.createElement('th'); th.textContent = column; header.appendChild(th); }); resultsHead.appendChild(header); const fragment = document.createDocumentFragment(); rows.forEach((row) => { const tr = document.createElement('tr'); state.columns.forEach((column) => { const td = document.createElement('td');
 
-const preview = document.createElement('div');
-preview.className = 'cell-preview';
-preview.textContent = row[column] ?? '';
+td.innerHTML = `
+<div style="
+display:-webkit-box;
+-webkit-line-clamp:3;
+-webkit-box-orient:vertical;
+overflow:hidden;
+line-height:1.4;
+max-height:4.2em;
+">
+${row[column] ?? ''}
+</div>
+`;
 
-td.appendChild(preview);
-tr.appendChild(td);; }); fragment.appendChild(tr); }); resultsBody.appendChild(fragment);
+tr.appendChild(td);
 }
 function search() { if (!state.ready) { resultsStatus.textContent = 'Data is still loading. Please try again in a moment.'; return; } if (!validateExtendYear()) return; const filters = getCriteria(); if (!hasActiveCriteria(filters)) { resultsHead.replaceChildren(); resultsBody.replaceChildren(); resultTitle.textContent = 'Enter a search criterion'; resultsStatus.textContent = 'Enter a keyword, choose a value, or select a date range before searching.'; return; } renderResults(state.rows.filter((row) => matches(row, filters))); }
 function reset() { filtersContainer.querySelectorAll('input').forEach((input) => { input.checked = false; input.value = ''; }); resultsHead.replaceChildren(); resultsBody.replaceChildren(); resultTitle.textContent = 'Ready to search'; resultsStatus.textContent = 'Filters reset.'; }
