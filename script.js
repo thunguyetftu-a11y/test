@@ -1,17 +1,17 @@
-const SHEET_ID = '18cubpnwvTxoiC8aVp-JmxAzldsnfK-86q2nTNp7vuiU';
+const SHEET_ID = '1uS-22GKtiiWrawzIUwsqrW6wOODuYDWwo3bbD_TFK48';
 const MAIN_GID = '0';
 const SETTINGS_GID = '1384681035';
-const AUTH_SESSION_KEY = 'aps-visit-history-data-authenticated';
-const CACHE_KEY = 'aps-visit-history-data-cache-v2';
+const AUTH_SESSION_KEY = 'aps-data-library-authenticated';
+const CACHE_KEY = 'aps-data-library-cache-v2';
 const state = { columns: [], rows: [], passcode: null, ready: false };
 const $ = (id) => document.getElementById(id);
 const loginScreen = $('login-screen'); const appScreen = $('app-screen'); const loginForm = $('login-form');
 const loginMessage = $('login-message'); const passcodeInput = $('passcode'); const filtersContainer = $('filters-container');
 const resultsHead = $('results-head'); const resultsBody = $('results-body'); const resultsStatus = $('results-status'); const resultTitle = $('result-title');
 const csvBase = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=`;
-const DATE_COLUMNS = new Set(['Actual Working date']);
-const HIDDEN_FILTERS = new Set(['visit', 'error area', 'error component', 'error type','task id','visited date','repair-finished date','customer contact','task status','employee 01','employee 02','employee 03','employee 04','employee 05','employee 06','employee 07','employee 08','employee 09','employee 10']);
-const DROPDOWN_COLUMNS = new Set(['functional location id','business categoryfyFY','actual month']);
+const DATE_COLUMNS = new Set(['INV Date', 'T&C Date', 'Ex-factory', 'Expiry date']);
+const HIDDEN_FILTERS = new Set(['total quantity', 'ex-factory', 'remark', 'model type 2']);
+const DROPDOWN_COLUMNS = new Set(['model type']);
 function clean(value) { return String(value ?? '').replace(/\uFEFF/g, '').trim(); }
 function normalize(value) { return clean(value).toLowerCase(); }
 async function fetchCsv(gid) { const response = await fetch(`${csvBase}${gid}&_=${Date.now()}`, { cache: 'no-store' }); if (!response.ok) throw new Error(`Google Sheet request failed: ${response.status}`); return response.text(); }
