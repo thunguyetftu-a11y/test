@@ -16,5 +16,16 @@
     <div id="detail-modal" class="detail-modal" hidden aria-hidden="true"><div class="detail-backdrop" data-close-details></div><section class="detail-card" role="dialog" aria-modal="true" aria-labelledby="detail-title"><div class="detail-header"><h3 id="detail-title">Record details</h3><button class="ghost-btn small" type="button" data-close-details aria-label="Close details">Close</button></div><div id="detail-content" class="detail-content"></div></section></div>
     <script src="script.js?v=16"></script>
     <script>(function(){const body=document.getElementById('results-body'),modal=document.getElementById('detail-modal'),content=document.getElementById('detail-content'),close=()=>{modal.hidden=true;modal.setAttribute('aria-hidden','true')},open=row=>{content.replaceChildren();Object.entries(row).forEach(([key,value])=>{const item=document.createElement('div');item.className='detail-item';const label=document.createElement('dt');label.textContent=key;const data=document.createElement('dd');data.textContent=value||'—';item.append(label,data);content.appendChild(item)});modal.hidden=false;modal.setAttribute('aria-hidden','false')};body.addEventListener('click',event=>{const row=event.target.closest('tr');if(row?.dataset.record)open(JSON.parse(row.dataset.record))});modal.addEventListener('click',event=>{if(event.target.matches('[data-close-details]'))close()});document.addEventListener('keydown',event=>{if(event.key==='Escape')close()});new MutationObserver(()=>{body.querySelectorAll('tr').forEach(row=>{if(row.dataset.record||row.querySelector('th'))return;const cells=[...row.cells],headers=[...document.querySelectorAll('#results-head th')];if(cells.length&&headers.length===cells.length){row.dataset.record=JSON.stringify(Object.fromEntries(headers.map((header,index)=>[header.textContent,cells[index].textContent])));row.tabIndex=0;row.setAttribute('aria-label','View record details')}})}).observe(body,{childList:true});body.addEventListener('keydown',event=>{if((event.key==='Enter'||event.key===' ')&&event.target.closest('tr')){event.preventDefault();event.target.closest('tr').click()}})})()</script>
+    <script>
+document.addEventListener("DOMContentLoaded", function () {
+    document.querySelectorAll('results-table .cell-preview').forEach(el => {
+        const lineHeight = parseFloat(getComputedStyle(el).lineHeight);
+        const maxLines = 3;
+        el.style.maxHeight = (lineHeight * maxLines) + 'px';
+        el.style.overflow = 'hidden';
+    });
+});
+</script>
+
   </body>
 </html>
