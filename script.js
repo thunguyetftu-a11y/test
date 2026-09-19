@@ -54,22 +54,7 @@ function matches(row, filters) { return state.columns.every((column) => { const 
 function validateExtendYear() { const column = state.columns.find((item) => normalize(item) === 'extend year'); if (!column) return true; const input = [...document.querySelectorAll('input[type="text"][data-column]')].find((item) => item.dataset.column === column); const value = clean(input?.value); if (value && !/^\d+(\.\d+)?$/.test(value)) { alert('Extend year must contain a decimal number only, for example 1 or 1.5.'); input.focus(); return false; } return true; }
 function renderResults(rows) {
   resultsHead.replaceChildren(); resultsBody.replaceChildren(); if (!rows.length) { resultTitle.textContent = 'No results'; resultsStatus.textContent = 'No matching records were found.'; resultsBody.innerHTML = '<tr><td colspan="100%"><div class="empty-state">No matching data found.</div></td></tr>'; return; }
-  resultTitle.textContent = `${rows.length} result${rows.length === 1 ? '' : 's'}`; resultsStatus.textContent = 'Results updated.'; const header = document.createElement('tr'); state.columns.forEach((column) => { const th = document.createElement('th'); th.textContent = column; header.appendChild(th); }); resultsHead.appendChild(header); const fragment = document.createDocumentFragment(); rows.forEach((row) => { const tr = document.createElement('tr'); state.columns.forEach((column) => { const td = document.createElement('td');
-
-td.innerHTML = `
-<div style="
-display:-webkit-box;
--webkit-line-clamp:3;
--webkit-box-orient:vertical;
-overflow:hidden;
-line-height:1.4;
-max-height:4.2em;
-">
-${row[column] ?? ''}
-</div>
-`;
-
-tr.appendChild(td);
+  resultTitle.textContent = `${rows.length} result${rows.length === 1 ? '' : 's'}`; resultsStatus.textContent = 'Results updated.'; const header = document.createElement('tr'); state.columns.forEach((column) => { const th = document.createElement('th'); th.textContent = column; header.appendChild(th); }); resultsHead.appendChild(header); const fragment = document.createDocumentFragment(); rows.forEach((row) => { const tr = document.createElement('tr'); state.columns.forEach((column) => { const td = document.createElement('td'); td.textContent = row[column] ?? ''; tr.appendChild(td); }); fragment.appendChild(tr); }); resultsBody.appendChild(fragment);
 }
 function search() { if (!state.ready) { resultsStatus.textContent = 'Data is still loading. Please try again in a moment.'; return; } if (!validateExtendYear()) return; const filters = getCriteria(); if (!hasActiveCriteria(filters)) { resultsHead.replaceChildren(); resultsBody.replaceChildren(); resultTitle.textContent = 'Enter a search criterion'; resultsStatus.textContent = 'Enter a keyword, choose a value, or select a date range before searching.'; return; } renderResults(state.rows.filter((row) => matches(row, filters))); }
 function reset() { filtersContainer.querySelectorAll('input').forEach((input) => { input.checked = false; input.value = ''; }); resultsHead.replaceChildren(); resultsBody.replaceChildren(); resultTitle.textContent = 'Ready to search'; resultsStatus.textContent = 'Filters reset.'; }
