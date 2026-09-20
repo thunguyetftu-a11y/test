@@ -14,7 +14,7 @@ const HIDDEN_FILTERS = new Set(['total quantity', 'ex-factory', 'remark', 'model
 const DROPDOWN_COLUMNS = new Set(['model type']);
 const NO_DROPDOWN_COLUMNS= new Set(['add','inv no.']);
 function clean(value) { return String(value ?? '').replace(/\uFEFF/g, '').trim(); }
-function normalize(value) { return clean(value).toLowerCase(); }
+function normalize(value) { return clean(value).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd'); }
 async function fetchCsv(gid) { const response = await fetch(`${csvBase}${gid}&_=${Date.now()}`, { cache: 'no-store' }); if (!response.ok) throw new Error(`Google Sheet request failed: ${response.status}`); return response.text(); }
 function readPasscode(rows) { for (const row of rows) for (let i = 0; i < row.length - 1; i += 1) if (normalize(row[i]) === 'passcode' && clean(row[i + 1])) return clean(row[i + 1]); return null; }
 function applyData(settingsText, mainText) {
