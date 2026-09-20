@@ -72,13 +72,13 @@ function renderResults(rows) {
     }); fragment.appendChild(tr); }); resultsBody.appendChild(fragment);
 }
 function search() { if (!state.ready) { resultsStatus.textContent = 'Data is still loading. Please try again in a moment.'; return; } if (!validateExtendYear()) return; const filters = getCriteria(); if (!hasActiveCriteria(filters)) { resultsHead.replaceChildren(); resultsBody.replaceChildren(); resultTitle.textContent = 'Enter a search criterion'; resultsStatus.textContent = 'Enter a keyword, choose a value, or select a date range before searching.'; return; } renderResults(state.rows.filter((row) => matches(row, filters))); }
-funtion filterDropdownOptions(column,keyword,{scrollToFirst=true}={}) {
+function filterDropdownOptions(column,keyword,{scrollToFirst=true}={}) {
   const details=[...document.querySelectorAll('.value-dropdown')]
   .find(item=>item.dataset.column===column);
   if (!details) return [];
   const term=normalize(keyword);
-  const labels=[...details.querySelectorAll('option-item')];
-  const maches = [];
+  const labels=[...details.querySelectorAll(.'option-item')];
+  const matches = [];
   labels.forEach(label=>{
     const checkbox=label.querySelector('input[type="checkbox"]');
     const matched=
@@ -89,8 +89,8 @@ funtion filterDropdownOptions(column,keyword,{scrollToFirst=true}={}) {
       matches.push(label);
     }
   });
-  if(scrollTofirst && matches.length&&term){
-    matches[0].scrollintoView({
+  if(scrollToFirst && matches.length&&term){
+    matches[0].scrollIntoView({
       block:'nearest'
     });
   }
@@ -132,7 +132,7 @@ function updateDropdownSummary(details){
   const summary=details.querySelector('summary');
   if(!summary)return;
   summary.textContent=checked.length
-  ?'${checked.length} selected'
+  ?`${checked.length} selected`
     :'Select values';
 }
 
