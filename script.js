@@ -88,10 +88,13 @@ label.querySelector(
 'input[type="checkbox"]'
 );
 
+
+const valueText =
+    normalize(checkbox?.value);
+
 const matched =
-!term ||
-normalize(checkbox.value)
-.includes(term);
+    !term ||
+    valueText.indexOf(term)!==-1;
 
 label.hidden = !matched;
 
@@ -105,6 +108,9 @@ details.open = true;
 }
 
 return matches;
+  if (term) {
+    details.open = true;
+}return matches;
 }
 
 function updateDropdownSummary(details) {
@@ -166,7 +172,53 @@ group.appendChild(inputs); filtersContainer.appendChild(group);
 
 
 
-function keywords(value) { return clean(value).split(/[ ,;|\n]+/).map(normalize).filter(Boolean); }
+function keywords(value) {
+  const text = normalize(value);
+
+  return text
+    ? [text]
+    : [];
+}
+function matchSearch(text, search) {
+
+    if (!text || !search) return false;
+
+    text = String(text).toLowerCase();
+    search = search.toLowerCase().trim();
+
+    // *long thanh*
+    if (
+        search.startsWith('*') &&
+        search.endsWith('*') &&
+        !search.slice(1, -1).includes('*')
+    ) {
+
+        const keyword =
+            search.slice(1, -1).trim();
+
+        return text.includes(keyword);
+    }
+
+    // *long*thanh*
+    if (
+        search.startsWith('*') &&
+        search.endsWith('*')
+    ) {
+
+        const keywords = search
+            .slice(1, -1)
+            .split('*')
+            .map(x => x.trim())
+            .filter(Boolean);
+
+        return keywords.every(
+            keyword =>
+                text.includes(keyword)
+        );
+    }
+
+    return text.includes(search);
+}
 function toDate(value) { const text = clean(value); if (/^\d{4}-\d{2}-\d{2}$/.test(text)) return text; const match = text.match(/^(\d{2})\/(\d{2})\/(\d{4})$/); if (match) return `${match[3]}-${match[2]}-${match[1]}`; const date = new Date(text); return Number.isNaN(date.getTime()) ? null : date.toISOString().slice(0, 10); }
 function getCriteria() {
   return Object.fromEntries(state.columns.map((column) => { if (isHiddenFilter(column)) return [column, { text: [], selected: [], from: '', to: '' }]; const search = [...document.querySelectorAll('input[type="text"][data-column]')].find((input) => input.dataset.column === column); const selected = [...document.querySelectorAll('input[type="checkbox"][data-column]')].filter((input) => input.dataset.column === column && input.checked).map((input) => normalize(input.value)); const from = [...document.querySelectorAll('[data-date-start]')].find((input) => input.dataset.dateStart === column); const to = [...document.querySelectorAll('[data-date-end]')].find((input) => input.dataset.dateEnd === column); return [column, { text: keywords(search?.value), selected, from: from?.value || '', to: to?.value || '' }]; }));
@@ -186,9 +238,13 @@ return false;
 
 if (
 !filter.text.some(
-term => value.includes(term)
+term => matchSearch(
+value,
+term
 )
-) {
+)
+)
+{
 return false;
 }
 }
