@@ -40,12 +40,12 @@ function makeOptions(column) {
 function renderFilters() {
   filtersContainer.replaceChildren(); state.columns.forEach((column) => { if (isHiddenFilter(column)) return; const group = document.createElement('div'); group.className = 'filter-group'; const title = document.createElement('h4'); title.textContent = column; group.appendChild(title); const inputs = document.createElement('div'); inputs.className = 'filter-inputs';
     if (isDateColumn(column)) { const range = document.createElement('div'); range.className = 'date-range'; const from = document.createElement('input'); from.type = 'date'; from.dataset.dateStart = column; from.title = 'From'; const to = document.createElement('input'); to.type = 'date'; to.dataset.dateEnd = column; to.title = 'To'; range.append(from, to); inputs.appendChild(range); }
-    else { const searchInput = document.createElement('input'); searchInput.type = 'text'; searchInput.placeholder = `Search ${column}`; searchInput.dataset.column = column; searchInput.setAttribute ('aria-label','Search ${column}');'inputs.appendChild(searchInput); if (isDropdownColumn(column)) inputs.appendChild(makeOptions(column)); };
+    else { const searchInput = document.createElement('input'); searchInput.type = 'text'; searchInput.placeholder = `Search ${column}`; searchInput.dataset.column = column; searchInput.setAttribute ('aria-label',`Search ${column}`);inputs.appendChild(searchInput); if (isDropdownColumn(column)) inputs.appendChild(makeOptions(column)); 
       searchInput.addEventListener('input',()=>{filterDropdownOptions(column,searchInput.value,{scrollToFirst:true});});searchInput.addEventListener('focus',()=>{filterDropdownOptions(column,searchInput.value,{scrollToFirst:false});});searchInput.addEventListener('keydown',(event)=>{
       if(event.key !=='Enter')return;
       event.preventDefault();
       event.stopPropagation();
-      selectMatchingDropdownOptions(columnm,searchInput.value);                                           
+      selectMatchingDropdownOptions(column,searchInput.value);                                           
       search();
     });
          }
