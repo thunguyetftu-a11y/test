@@ -32,23 +32,116 @@ function isDateColumn(column) { return DATE_COLUMNS.has(column) || /date|time|cr
 function isHiddenFilter(column) { return HIDDEN_FILTERS.has(normalize(column)); }
 function isDropdownColumn(column) { return DROPDOWN_COLUMNS.has(normalize(column)) || !isDateColumn(column); }
 function makeOptions(column) {
-  const details = document.createElement('details'); details.className = 'value-dropdown'; const summary = document.createElement('summary'); summary.textContent = 'Select'; details.appendChild(summary);
-  const options = document.createElement('div'); options.className = 'field-options';
-  valuesFor(column).forEach((value) => { const label = document.createElement('label'); label.className = 'option-item'; const checkbox = document.createElement('input'); checkbox.type = 'checkbox'; checkbox.dataset.column = column; checkbox.value = value; checkbox.addEventListener('change',()=>{updateDropdownSummary(details);});const text = document.createElement('span'); text.textContent = value; label.append(checkbox, text); options.appendChild(label); });
-  details.appendChild(options); return details;
+  const details = document.createElement('details');
+  details.className = 'value-dropdown';
+  details.dataset.column = column;
+
+  const summary = document.createElement('summary');
+  summary.textContent = 'Select values';
+
+  const options = document.createElement('div');
+  options.className = 'field-options';
+
+  valuesFor(column).forEach((value) => {
+    const label = document.createElement('label');
+    label.className = 'option-item';
+
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.dataset.column = column;
+    checkbox.value = value;
+
+    checkbox.addEventListener('change', () => {
+      updateDropdownSummary(details);
+    });
+
+    const text = document.createElement('span');
+    text.textContent = value;
+
+    label.append(checkbox, text);
+    options.appendChild(label);
+  });
+
+  details.append(summary, options);
+
+  return details;
+}
+function filterDropdownOptions(column, keyword) {
+  const details = [...document.querySelectorAll('.value-dropdown')]
+    .find(item => item.dataset.column === column);
+
+  if (!details) return [];
+
+  const term = normalize(keyword);
+
+  const labels = [
+    ...details.querySelectorAll('.option-item')
+  ];
+
+  const matches = [];
+
+  labels.forEach(label => {
+    const checkbox =
+      label.querySelector('input[type="checkbox"]');
+
+    const matched =
+      !term ||
+      normalize(checkbox.value).includes(term);
+
+    label.hidden = !matched;
+
+    if (matched) {
+      matches.push(label);
+    }
+  });
+
+  if (matches.length) {
+    details.open = true;
+  }
+
+  return matches;
+}
+
+function updateDropdownSummary(details) {
+  const checked = [
+    ...details.querySelectorAll(
+      'input[type="checkbox"]:checked'
+    )
+  ];
+
+  const summary =
+    details.querySelector('summary');
+
+  if (!summary) return;
+
+  summary.textContent =
+    checked.length
+      ? `${checked.length} selected`
+      : 'Select values';
 }
 function renderFilters() {
   filtersContainer.replaceChildren(); state.columns.forEach((column) => { if (isHiddenFilter(column)) return; const group = document.createElement('div'); group.className = 'filter-group'; const title = document.createElement('h4'); title.textContent = column; group.appendChild(title); const inputs = document.createElement('div'); inputs.className = 'filter-inputs';
     if (isDateColumn(column)) { const range = document.createElement('div'); range.className = 'date-range'; const from = document.createElement('input'); from.type = 'date'; from.dataset.dateStart = column; from.title = 'From'; const to = document.createElement('input'); to.type = 'date'; to.dataset.dateEnd = column; to.title = 'To'; range.append(from, to); inputs.appendChild(range); }
-    else { const searchInput = document.createElement('input'); searchInput.type = 'text'; searchInput.placeholder = `Search ${column}`; searchInput.dataset.column = column; searchInput.setAttribute ('aria-label',`Search ${column}`);inputs.appendChild(searchInput); if (isDropdownColumn(column)) inputs.appendChild(makeOptions(column)); 
-      searchInput.addEventListener('input',()=>{filterDropdownOptions(column,searchInput.value,{scrollToFirst:true});});searchInput.addEventListener('focus',()=>{filterDropdownOptions(column,searchInput.value,{scrollToFirst:false});});searchInput.addEventListener('keydown',(event)=>{
-      if(event.key !=='Enter')return;
-      event.preventDefault();
-      event.stopPropagation();
-      selectMatchingDropdownOptions(column,searchInput.value);                                           
-      search();
-    });
-         }
+    else { const search = document.createElement('input');
+search.type = 'text';
+search.placeholder = `Search ${column}`;
+search.dataset.column = column;
+
+inputs.appendChild(search);
+
+if (isDropdownColumn(column)) {
+  const dropdown = makeOptions(column);
+
+  search.addEventListener('input', () => {
+    filterDropdownOptions(
+      column,
+      search.value
+    );
+  });
+
+  inputs.appendChild(dropdown);
+}
+          
     group.appendChild(inputs); filtersContainer.appendChild(group);
   });
 }
@@ -58,7 +151,19 @@ function getCriteria() {
   return Object.fromEntries(state.columns.map((column) => { if (isHiddenFilter(column)) return [column, { text: [], selected: [], from: '', to: '' }]; const search = [...document.querySelectorAll('input[type="text"][data-column]')].find((input) => input.dataset.column === column); const selected = [...document.querySelectorAll('input[type="checkbox"][data-column]')].filter((input) => input.dataset.column === column && input.checked).map((input) => normalize(input.value)); const from = [...document.querySelectorAll('[data-date-start]')].find((input) => input.dataset.dateStart === column); const to = [...document.querySelectorAll('[data-date-end]')].find((input) => input.dataset.dateEnd === column); return [column, { text: keywords(search?.value), selected, from: from?.value || '', to: to?.value || '' }]; }));
 }
 function hasActiveCriteria(filters) { return Object.values(filters).some((filter) => filter.text.length || filter.selected.length || filter.from || filter.to); }
-function matches(row, filters) { return state.columns.every((column) => { const filter = filters[column]; const value = normalize(row[column]); if (filter.text.length && !filter.text.some((term) => value.includes(term))) return false; if (filter.selected.length && !filter.selected.includes(value)) return false; if (filter.from || filter.to) { const date = toDate(row[column]); if (!date || (filter.from && date < filter.from) || (filter.to && date > filter.to)) return false; } return true; }); }
+function matches(row, filters) { return state.columns.every((column) => { const filter = filters[column]; const value = normalize(row[column]); if (filter.selected.length) {
+  if (!filter.selected.includes(value))
+    return false;
+}
+else if (filter.text.length) {
+  if (
+    !filter.text.some(
+      term => value.includes(term)
+    )
+  ) {
+    return false;
+  }
+} if (filter.from || filter.to) { const date = toDate(row[column]); if (!date || (filter.from && date < filter.from) || (filter.to && date > filter.to)) return false; } return true; }); }
 function validateExtendYear() { const column = state.columns.find((item) => normalize(item) === 'extend year'); if (!column) return true; const input = [...document.querySelectorAll('input[type="text"][data-column]')].find((item) => item.dataset.column === column); const value = clean(input?.value); if (value && !/^\d+(\.\d+)?$/.test(value)) { alert('Extend year must contain a decimal number only, for example 1 or 1.5.'); input.focus(); return false; } return true; }
 function renderResults(rows) {
   resultsHead.replaceChildren(); resultsBody.replaceChildren(); if (!rows.length) { resultTitle.textContent = 'No results'; resultsStatus.textContent = 'No matching records were found.'; resultsBody.innerHTML = '<tr><td colspan="100%"><div class="empty-state">No matching data found.</div></td></tr>'; return; }
