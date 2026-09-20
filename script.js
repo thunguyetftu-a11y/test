@@ -77,7 +77,7 @@ function filterDropdownOptions(column,keyword,{scrollToFirst=true}={}) {
   .find(item=>item.dataset.column===column);
   if (!details) return [];
   const term=normalize(keyword);
-  const labels=[...details.querySelectorAll(.'option-item')];
+  const labels=[...details.querySelectorAll('option-item')];
   const matches = [];
   labels.forEach(label=>{
     const checkbox=label.querySelector('input[type="checkbox"]');
