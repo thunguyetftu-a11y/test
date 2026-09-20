@@ -90,8 +90,7 @@ function getCriteria() {
   return Object.fromEntries(state.columns.map((column) => { if (isHiddenFilter(column)) return [column, { text: [], selected: [], from: '', to: '' }]; const search = [...document.querySelectorAll('input[type="text"][data-column]')].find((input) => input.dataset.column === column); const selected = [...document.querySelectorAll('input[type="checkbox"][data-column]')].filter((input) => input.dataset.column === column && input.checked).map((input) => normalize(input.value)); const from = [...document.querySelectorAll('[data-date-start]')].find((input) => input.dataset.dateStart === column); const to = [...document.querySelectorAll('[data-date-end]')].find((input) => input.dataset.dateEnd === column); return [column, { text: keywords(search?.value), selected, from: from?.value || '', to: to?.value || '' }]; }));
 }
 function hasActiveCriteria(filters) { return Object.values(filters).some((filter) => filter.text.length || filter.selected.length || filter.from || filter.to); }
-function matches(row, filters) { return state.columns.every((column) => { const filter = filters[column]; const value = normalize(row[column]); function matches(row, filters) {
-return state.columns.every((column) => {const filter = filters[column];const value = normalize(row[column]);// ưu tiên checkbox
+function matches(row, filters) { return state.columns.every((column) => { const filter = filters[column]; const value = normalize(row[column]); // ưu tiên checkbox
 if (filter.selected.length) {if (!filter.selected.includes(value))return false;}
 else {if (filter.text.length &&!filter.text.some(term =>matchSearch(value, term))
 ) {return false;}}if (filter.from || filter.to) {const date = toDate(row[column]);if (!date ||
