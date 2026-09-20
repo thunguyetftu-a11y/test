@@ -95,7 +95,7 @@ if (filter.selected.length) {if (!filter.selected.includes(value))return false;}
 else {if (filter.text.length &&!filter.text.some(term =>matchSearch(value, term))
 ) {return false;}}if (filter.from || filter.to) {const date = toDate(row[column]);if (!date ||
 (filter.from && date < filter.from) ||(filter.to && date > filter.to)) {return false;}}return true;});}
- if (filter.from || filter.to) { const date = toDate(row[column]); if (!date || (filter.from && date < filter.from) || (filter.to && date > filter.to)) return false; } return true; }); }
+ 
 function validateExtendYear() { const column = state.columns.find((item) => normalize(item) === 'extend year'); if (!column) return true; const input = [...document.querySelectorAll('input[type="text"][data-column]')].find((item) => item.dataset.column === column); const value = clean(input?.value); if (value && !/^\d+(\.\d+)?$/.test(value)) { alert('Extend year must contain a decimal number only, for example 1 or 1.5.'); input.focus(); return false; } return true; }
 function renderResults(rows) {
   resultsHead.replaceChildren(); resultsBody.replaceChildren(); if (!rows.length) { resultTitle.textContent = 'No results'; resultsStatus.textContent = 'No matching records were found.'; resultsBody.innerHTML = '<tr><td colspan="100%"><div class="empty-state">No matching data found.</div></td></tr>'; return; }
