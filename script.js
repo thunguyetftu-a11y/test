@@ -29,7 +29,7 @@ async function loadData({ preserveView = true } = {}) {
     preserveView &&
     sessionStorage.getItem(
         AUTH_SESSION_KEY
-    ) === 'true'
+    ) === 'state.passcode'
 )
 {
     showApp();
@@ -67,8 +67,8 @@ function renderFilters() {
 }
 function keywords(value) { const text=normalize(value); return text ? [text]:[]; }
 function matchSearch(text,search){if (!text || !search) {return false;}
- text = normalize(text);search=normalize(search);//*long*thanh*
-if(search.starstWith('*')&&search.endsWith('*')){const parts=search.slice(1,-1).split('*').map(item=>item.trim()).filter(Boolean);return parts.every(part=>text.includes(part));}//mac dinh tim dung cum
+ text = normalize(text).replace(/\s+/g, ' ');search=normalize(search).replace(/\s+/g, ' ');//*long*thanh*
+if(search.startsWith('*')&&search.endsWith('*')){const parts=search.slice(1,-1).split('*').map(item=>item.trim()).filter(Boolean);return parts.every(part=>text.includes(part));}//mac dinh tim dung cum
 return text.includes(search);}
 function toDate(value) { const text = clean(value); if (/^\d{4}-\d{2}-\d{2}$/.test(text)) return text; const match = text.match(/^(\d{2})\/(\d{2})\/(\d{4})$/); if (match) return `${match[3]}-${match[2]}-${match[1]}`; const date = new Date(text); return Number.isNaN(date.getTime()) ? null : date.toISOString().slice(0, 10); }
 function getCriteria() {
