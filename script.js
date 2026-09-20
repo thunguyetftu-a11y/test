@@ -108,9 +108,7 @@ details.open = true;
 }
 
 return matches;
-  if (term) {
-    details.open = true;
-}return matches;
+  
 }
 
 function updateDropdownSummary(details) {
