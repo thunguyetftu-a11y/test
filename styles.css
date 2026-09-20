@@ -121,9 +121,39 @@
 
 .filter-dropdown{
     position:absolute;
-    top:100%;
-    left:0;
-    right:0;
+    top:0;
+    left:calc(100% + 8px);
+
+    min-width:450px;
+
+width:max-content;
+    max-width:700px;
+
+    background:#fff;
+    border:1px solid var(--border);
+    border-radius:8px;
+    box-shadow:0 8px 24px rgba(0,0,0,.12);
+
+    max-height:300px;
+    overflow-y:auto;
+
+    z-index:9999;
+    padding:8px;
+}
+.search-dropdown-container{
+    position:relative;
+    overflow:visible;
+}.filter-dropdown.dropdown-right{
+
+left:auto;
+
+right:calc(100% + 8px);
+
+}
+
+.filter-group{
+    overflow:visible;
+}
     background:#fff;
     border:1px solid var(--border);
     border-radius:8px;
@@ -139,5 +169,12 @@
     gap:6px;
     align-items:center;
     padding:4px 0;
+}.option-item{
+    align-items:flex-start;
+    line-height:1.35;
+}
+
+.option-item span{
+    word-break:break-word;
 }
 
