@@ -34,7 +34,7 @@ function isDropdownColumn(column) { return DROPDOWN_COLUMNS.has(normalize(column
 function makeOptions(column) {
   const details = document.createElement('details'); details.className = 'value-dropdown'; const summary = document.createElement('summary'); summary.textContent = 'Select'; details.appendChild(summary);
   const options = document.createElement('div'); options.className = 'field-options';
-  valuesFor(column).forEach((value) => { const label = document.createElement('label'); label.className = 'option-item'; const checkbox = document.createElement('input'); checkbox.type = 'checkbox'; checkbox.dataset.column = column; checkbox.value = value; checkbox.addEventListener(‘change’,()=>{updateDropdownSummary(details);});const text = document.createElement('span'); text.textContent = value; label.append(checkbox, text); options.appendChild(label); });
+  valuesFor(column).forEach((value) => { const label = document.createElement('label'); label.className = 'option-item'; const checkbox = document.createElement('input'); checkbox.type = 'checkbox'; checkbox.dataset.column = column; checkbox.value = value; checkbox.addEventListener('change',()=>{updateDropdownSummary(details);});const text = document.createElement('span'); text.textContent = value; label.append(checkbox, text); options.appendChild(label); });
   details.appendChild(options); return details;
 }
 
@@ -50,11 +50,13 @@ const searchInput = document.createElement('input');
 searchInput.type = 'text';
 searchInput.placeholder = `Search ${column}`;
 searchInput.dataset.column = column;
-searchInput.setAttribute(‘aria-label’, `Search ${column}`);
+searchInput.setAttribute('aria-label', `Search ${column}`);
 
 
 inputs.appendChild(searchInput);
-if (isDropdownColumn(column)) inputs.appendChild(makeOptions(column)); }
+if (isDropdownColumn(column)) inputs.appendChild(makeOptions(column)); 
+
+
 searchInput.addEventListener('input', () => {
         filterDropdownOptions(column, searchInput.value, {
             scrollToFirst: true
@@ -84,6 +86,8 @@ searchInput.addEventListener('input', () => {
     group.appendChild(inputs); filtersContainer.appendChild(group);
   });
 }
+
+
 
 
 
