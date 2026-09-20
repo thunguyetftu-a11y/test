@@ -185,3 +185,10 @@ $('search-btn')?.addEventListener('click', search); $('top-search-btn')?.addEven
 $('refresh-btn')?.addEventListener('click', async () => { const button = $('refresh-btn'); button.disabled = true; button.textContent = 'Refreshing...'; await loadData({ preserveView: true }); button.disabled = false; button.textContent = 'Refresh'; });
 $('logout-btn')?.addEventListener('click', () => { sessionStorage.removeItem(AUTH_SESSION_KEY); showLogin(); }); passcodeInput.addEventListener('input', (event) => { event.target.value = event.target.value.replace(/\D/g, '').slice(0, 6); }); document.addEventListener('keydown', (event) => { if (event.key === 'Enter' && appScreen.classList.contains('active')) search(); });
 const usedCache = readCache(); loadData({ preserveView: true, background: usedCache });
+const rect = container.getBoundingClientRect();
+
+if (window.innerWidth - rect.right < 520) {
+    dropdown
+      .querySelector('.filter-dropdown')
+      .classList.add('dropdown-right');
+}
