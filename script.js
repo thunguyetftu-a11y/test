@@ -66,15 +66,16 @@ function renderFilters() {
   });
 }
 function keywords(value) { const text=normalize(value); return text ? [text]:[]; }
-function matchSearch(text,search){return false;} text = normalize(text);search=normalize(search);//*long*thanh*
-if(search.startWith('*')&&search.endWith('*')){const parts=search.slice(1,-1).split('*').map(item=>item.trim()).filter(Boolean);return parts.every(part=>text.includes(part));}//mac dinh tim dung cum
+function matchSearch(text,search){if (!text || !search) {return false;}
+ text = normalize(text);search=normalize(search);//*long*thanh*
+if(search.starstWith('*')&&search.endsWith('*')){const parts=search.slice(1,-1).split('*').map(item=>item.trim()).filter(Boolean);return parts.every(part=>text.includes(part));}//mac dinh tim dung cum
 return text.includes(search);}
 function toDate(value) { const text = clean(value); if (/^\d{4}-\d{2}-\d{2}$/.test(text)) return text; const match = text.match(/^(\d{2})\/(\d{2})\/(\d{4})$/); if (match) return `${match[3]}-${match[2]}-${match[1]}`; const date = new Date(text); return Number.isNaN(date.getTime()) ? null : date.toISOString().slice(0, 10); }
 function getCriteria() {
   return Object.fromEntries(state.columns.map((column) => { if (isHiddenFilter(column)) return [column, { text: [], selected: [], from: '', to: '' }]; const search = [...document.querySelectorAll('input[type="text"][data-column]')].find((input) => input.dataset.column === column); const selected = [...document.querySelectorAll('input[type="checkbox"][data-column]')].filter((input) => input.dataset.column === column && input.checked).map((input) => normalize(input.value)); const from = [...document.querySelectorAll('[data-date-start]')].find((input) => input.dataset.dateStart === column); const to = [...document.querySelectorAll('[data-date-end]')].find((input) => input.dataset.dateEnd === column); return [column, { text: keywords(search?.value), selected, from: from?.value || '', to: to?.value || '' }]; }));
 }
 function hasActiveCriteria(filters) { return Object.values(filters).some((filter) => filter.text.length || filter.selected.length || filter.from || filter.to); }
-function matches(row, filters) { return state.columns.every((column) => { const filter = filters[column]; const value = normalize(row[column]); if (filter.text.length && !filter.text.some(term => matchSearch(value,term))){ return false} if (filter.selected.length && !filter.selected.includes(value)) return false; if (filter.from || filter.to) { const date = toDate(row[column]); if (!date || (filter.from && date < filter.from) || (filter.to && date > filter.to)) return false; } return true; }); }
+function matches(row, filters) { return state.columns.every((column) => { const filter = filters[column]; const value = normalize(row[column]); if (filter.text.length && !filter.text.some(term => matchSearch(value,term))){ return false;} if (filter.selected.length && !filter.selected.includes(value)) return false; if (filter.from || filter.to) { const date = toDate(row[column]); if (!date || (filter.from && date < filter.from) || (filter.to && date > filter.to)) return false; } return true; }); }
 function validateExtendYear() { const column = state.columns.find((item) => normalize(item) === 'extend year'); if (!column) return true; const input = [...document.querySelectorAll('input[type="text"][data-column]')].find((item) => item.dataset.column === column); const value = clean(input?.value); if (value && !/^\d+(\.\d+)?$/.test(value)) { alert('Extend year must contain a decimal number only, for example 1 or 1.5.'); input.focus(); return false; } return true; }
 function renderResults(rows) {
   resultsHead.replaceChildren(); resultsBody.replaceChildren(); if (!rows.length) { resultTitle.textContent = 'No results'; resultsStatus.textContent = 'No matching records were found.'; resultsBody.innerHTML = '<tr><td colspan="100%"><div class="empty-state">No matching data found.</div></td></tr>'; return; }
