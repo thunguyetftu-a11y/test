@@ -52,22 +52,94 @@ function isDropdownColumn(column) {
     )
   );
 }
-function makeOptions(column) {const details = document.createElement('details');
-details.className = 'value-dropdown';const summary = document.createElement('summary');summary.textContent = 'Select';
-details.appendChild(summary);const options = document.createElement('div');
-options.className = 'field-options';valuesFor(column).forEach((value) => {
+function makeOptions(column) {
 
-const label = document.createElement('label');label.className = 'option-item';
-label.dataset.value = normalize(value);const checkbox = document.createElement('input');
-checkbox.type = 'checkbox';checkbox.dataset.column = column;checkbox.value = value;
-const text = document.createElement('span');text.textContent = value;
-label.append(checkbox, text);options.appendChild(label);});
-details.appendChild(options);return details;}
+    const wrapper = document.createElement('div');
+    wrapper.className = 'filter-search-dropdown';
+
+    const dropdown = document.createElement('div');
+    dropdown.className = 'filter-dropdown';
+
+    valuesFor(column).forEach((value) => {
+
+        const label = document.createElement('label');
+        label.className = 'option-item';
+
+        label.dataset.value = normalize(value);
+
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.dataset.column = column;
+        checkbox.value = value;
+
+        const text = document.createElement('span');
+        text.textContent = value;
+
+        label.append(checkbox, text);
+
+        dropdown.appendChild(label);
+
+    });
+
+    wrapper.appendChild(dropdown);
+
+    return wrapper;
+}
 
 function renderFilters() {
   filtersContainer.replaceChildren(); state.columns.forEach((column) => { if (isHiddenFilter(column)) return; const group = document.createElement('div'); group.className = 'filter-group'; const title = document.createElement('h4'); title.textContent = column; group.appendChild(title); const inputs = document.createElement('div'); inputs.className = 'filter-inputs';
     if (isDateColumn(column)) { const range = document.createElement('div'); range.className = 'date-range'; const from = document.createElement('input'); from.type = 'date'; from.dataset.dateStart = column; from.title = 'From'; const to = document.createElement('input'); to.type = 'date'; to.dataset.dateEnd = column; to.title = 'To'; range.append(from, to); inputs.appendChild(range); }
-    else { const search = document.createElement('input'); search.type = 'text'; search.placeholder = `Search ${column}`; search.dataset.column = column; if (isDropdownColumn(column)) inputs.appendChild(makeOptions(column)); inputs.appendChild(search); search.addEventListener('input', () => {
+    else {const search = document.createElement('input');
+search.type = 'text';
+search.placeholder = `Search ${column}`;
+search.dataset.column = column;
+
+const container = document.createElement('div');
+container.className = 'search-dropdown-container';
+
+container.appendChild(search);
+
+if (isDropdownColumn(column)) {
+
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'dropdown-arrow';
+    button.innerHTML = '▼';
+
+    const dropdown = makeOptions(column);
+
+    button.addEventListener('click', () => {
+
+        dropdown.classList.toggle('open');
+
+    });
+
+    search.addEventListener('input', () => {
+
+        const keyword = normalize(search.value);
+
+        dropdown.classList.add('open');
+
+        dropdown
+        .querySelectorAll('.option-item')
+        .forEach(item => {
+
+            const value = item.dataset.value;
+
+            item.style.display =
+                !keyword || value.includes(keyword)
+                    ? ''
+                    : 'none';
+
+        });
+
+    });
+
+    container.appendChild(button);
+    container.appendChild(dropdown);
+}
+
+inputs.appendChild(container);  inputs.appendChild(search); search.addEventListener('input', () => {
 const dropdown =inputs.querySelector('.value-dropdown');
 if (!dropdown) return;const keyword =normalize(search.value);
 const items =dropdown.querySelectorAll('.option-item');
