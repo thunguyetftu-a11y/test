@@ -189,7 +189,13 @@ function updateDropdownSummary(details) {
 }
 
 
-function keywords(value) { return clean(value).split(/[ ,;|\n]+/).map(normalize).filter(Boolean); }
+function keywords(value) {
+const text = normalize(value);
+
+return text
+? [text]
+: [];
+}
 function toDate(value) { const text = clean(value); if (/^\d{4}-\d{2}-\d{2}$/.test(text)) return text; const match = text.match(/^(\d{2})\/(\d{2})\/(\d{4})$/); if (match) return `${match[3]}-${match[2]}-${match[1]}`; const date = new Date(text); return Number.isNaN(date.getTime()) ? null : date.toISOString().slice(0, 10); }
 function getCriteria() {
   return Object.fromEntries(state.columns.map((column) => { if (isHiddenFilter(column)) return [column, { text: [], selected: [], from: '', to: '' }]; const search = [...document.querySelectorAll('input[type="text"][data-column]')].find((input) => input.dataset.column === column); const selected = [...document.querySelectorAll('input[type="checkbox"][data-column]')].filter((input) => input.dataset.column === column && input.checked).map((input) => normalize(input.value)); const from = [...document.querySelectorAll('[data-date-start]')].find((input) => input.dataset.dateStart === column); const to = [...document.querySelectorAll('[data-date-end]')].find((input) => input.dataset.dateEnd === column); return [column, { text: keywords(search?.value), selected, from: from?.value || '', to: to?.value || '' }]; }));
@@ -216,3 +222,5 @@ $('search-btn')?.addEventListener('click', search); $('top-search-btn')?.addEven
 $('refresh-btn')?.addEventListener('click', async () => { const button = $('refresh-btn'); button.disabled = true; button.textContent = 'Refreshing...'; await loadData({ preserveView: true }); button.disabled = false; button.textContent = 'Refresh'; });
 $('logout-btn')?.addEventListener('click', () => { sessionStorage.removeItem(AUTH_SESSION_KEY); showLogin(); }); passcodeInput.addEventListener('input', (event) => { event.target.value = event.target.value.replace(/\D/g, '').slice(0, 6); }); document.addEventListener('keydown', (event) => { if (event.key === 'Enter' && appScreen.classList.contains('active')) search(); });
 const usedCache = readCache(); loadData({ preserveView: true, background: usedCache });
+
+
