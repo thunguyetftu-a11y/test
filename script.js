@@ -34,13 +34,21 @@ function isDropdownColumn(column) { return DROPDOWN_COLUMNS.has(normalize(column
 function makeOptions(column) {
   const details = document.createElement('details'); details.className = 'value-dropdown'; const summary = document.createElement('summary'); summary.textContent = 'Select'; details.appendChild(summary);
   const options = document.createElement('div'); options.className = 'field-options';
-  valuesFor(column).forEach((value) => { const label = document.createElement('label'); label.className = 'option-item'; const checkbox = document.createElement('input'); checkbox.type = 'checkbox'; checkbox.dataset.column = column; checkbox.value = value; const text = document.createElement('span'); text.textContent = value; label.append(checkbox, text); options.appendChild(label); });
+  valuesFor(column).forEach((value) => { const label = document.createElement('label'); label.className = 'option-item'; const checkbox = document.createElement('input'); checkbox.type = 'checkbox'; checkbox.dataset.column = column; checkbox.value = value; checkbox.addEventListener('change',()=>{updateDropdownSummary(details);});const text = document.createElement('span'); text.textContent = value; label.append(checkbox, text); options.appendChild(label); });
   details.appendChild(options); return details;
 }
 function renderFilters() {
   filtersContainer.replaceChildren(); state.columns.forEach((column) => { if (isHiddenFilter(column)) return; const group = document.createElement('div'); group.className = 'filter-group'; const title = document.createElement('h4'); title.textContent = column; group.appendChild(title); const inputs = document.createElement('div'); inputs.className = 'filter-inputs';
     if (isDateColumn(column)) { const range = document.createElement('div'); range.className = 'date-range'; const from = document.createElement('input'); from.type = 'date'; from.dataset.dateStart = column; from.title = 'From'; const to = document.createElement('input'); to.type = 'date'; to.dataset.dateEnd = column; to.title = 'To'; range.append(from, to); inputs.appendChild(range); }
-    else { const search = document.createElement('input'); search.type = 'text'; search.placeholder = `Search ${column}`; search.dataset.column = column; inputs.appendChild(search); if (isDropdownColumn(column)) inputs.appendChild(makeOptions(column)); }
+    else { const searchInput = document.createElement('input'); searchInput.type = 'text'; searchInput.placeholder = `Search ${column}`; searchInput.dataset.column = column; searchInput.setAttribute ('aria-label','Search ${column}');'inputs.appendChild(searchInput); if (isDropdownColumn(column)) inputs.appendChild(makeOptions(column)); };
+      searchInput.addEventListener('input',()=>{filterDropdownOptions(column,searchInput.value,{scrollToFirst:true});});searchInput.addEventListener('focus',()=>{filterDropdownOptions(column,searchInput.value,{scrollToFirst:false});});searchInput.addEventListener('keydown',(event)=>{
+      if(event.key !=='Enter')return;
+      event.preventDefault();
+      event.stopPropagation();
+      selectMatchingDropdownOptions(columnm,searchInput.value);                                           
+      search();
+    });
+         }
     group.appendChild(inputs); filtersContainer.appendChild(group);
   });
 }
@@ -64,6 +72,73 @@ function renderResults(rows) {
     }); fragment.appendChild(tr); }); resultsBody.appendChild(fragment);
 }
 function search() { if (!state.ready) { resultsStatus.textContent = 'Data is still loading. Please try again in a moment.'; return; } if (!validateExtendYear()) return; const filters = getCriteria(); if (!hasActiveCriteria(filters)) { resultsHead.replaceChildren(); resultsBody.replaceChildren(); resultTitle.textContent = 'Enter a search criterion'; resultsStatus.textContent = 'Enter a keyword, choose a value, or select a date range before searching.'; return; } renderResults(state.rows.filter((row) => matches(row, filters))); }
+funtion filterDropdownOptions(column,keyword,{scrollToFirst=true}={}) {
+  const details=[...document.querySelectorAll('.value-dropdown')]
+  .find(item=>item.dataset.column===column);
+  if (!details) return [];
+  const term=normalize(keyword);
+  const labels=[...details.querySelectorAll('option-item')];
+  const maches = [];
+  labels.forEach(label=>{
+    const checkbox=label.querySelector('input[type="checkbox"]');
+    const matched=
+      !term||
+      normalize(checkbox?.value).includes(term);
+    label.hidden=!matched;
+    if(matched){
+      matches.push(label);
+    }
+  });
+  if(scrollTofirst && matches.length&&term){
+    matches[0].scrollintoView({
+      block:'nearest'
+    });
+  }
+  return matches;
+}
+function selectMatchingDropdownOptions(column,keyword){
+  const details=[...document.querySelectorAll('.value-dropdown')]
+  .find(item=>item.dataset.column===column);
+  if(!details) return 0;
+  const term=normalize(keyword);
+  if(!term) return 0;
+  const labels=[...details.querySelectorAll('.option-item')];
+  const matches=labels.filter(label=>{
+    const checkbox=
+      label.querySelector('input[type="checkbox"]');
+    return checkbox &&
+      normalize(checkbox.value).includes(term);
+  });
+  matches.forEach(label=>{
+    const checkbox=
+      label.querySelector('input[type="checkbox"]');
+    checkbox.checked=true;
+    //Hien tai ket qua match
+    label.hidden=false;
+  });
+  updateDropdownSummary(details);
+  if(matches.length){
+    details.open=true;
+    matches[0].scrollIntoView({
+      block:'nearest'
+    });
+  }
+  return matches.length;
+}
+function updateDropdownSummary(details){
+  const checked=[
+    ...details.querySelectorAll(
+      'input[type="checkbox"]:checked')];
+  const summary=details.querySelector('summary');
+  if(!summary)return;
+  summary.textContent=checked.length
+  ?'${checked.length} selected'
+    :'Select values';
+}
+
+
+
+
 function reset() { filtersContainer.querySelectorAll('input').forEach((input) => { input.checked = false; input.value = ''; }); resultsHead.replaceChildren(); resultsBody.replaceChildren(); resultTitle.textContent = 'Ready to search'; resultsStatus.textContent = 'Filters reset.'; }
 function showApp() { loginScreen.classList.remove('active'); appScreen.classList.add('active'); }
 function showLogin() { appScreen.classList.remove('active'); loginScreen.classList.add('active'); passcodeInput.value = ''; passcodeInput.focus(); }
