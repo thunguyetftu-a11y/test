@@ -176,4 +176,12 @@ right:calc(100% + 8px);
 
 .option-item span{
     word-break:break-word;
+}.sum-btn{
+    margin-left:4px;
+    border:none;
+    background:none;
+    cursor:pointer;
+    color:#1976d2;
+    font-weight:bold;
 }
+
