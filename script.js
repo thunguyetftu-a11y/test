@@ -194,7 +194,21 @@ else {if (filter.text.length &&!filter.text.some(term =>matchSearch(value, term)
 function validateExtendYear() { const column = state.columns.find((item) => normalize(item) === 'extend year'); if (!column) return true; const input = [...document.querySelectorAll('input[type="text"][data-column]')].find((item) => item.dataset.column === column); const value = clean(input?.value); if (value && !/^\d+(\.\d+)?$/.test(value)) { alert('Extend year must contain a decimal number only, for example 1 or 1.5.'); input.focus(); return false; } return true; }
 function renderResults(rows) {
   resultsHead.replaceChildren(); resultsBody.replaceChildren(); if (!rows.length) { resultTitle.textContent = 'No results'; resultsStatus.textContent = 'No matching records were found.'; resultsBody.innerHTML = '<tr><td colspan="100%"><div class="empty-state">No matching data found.</div></td></tr>'; return; }
-  resultTitle.textContent = `${rows.length} result${rows.length === 1 ? '' : 's'}`; resultsStatus.textContent = 'Results updated.'; const header = document.createElement('tr'); state.columns.forEach((column) => { const th = document.createElement('th'); th.textContent = column; header.appendChild(th); }); resultsHead.appendChild(header); const fragment = document.createDocumentFragment(); rows.forEach((row) => { const tr = document.createElement('tr'); state.columns.forEach((column) => { const td = document.createElement('td');
+  resultTitle.textContent = `${rows.length} result${rows.length === 1 ? '' : 's'}`; resultsStatus.textContent = 'Results updated.'; const header = document.createElement('tr'); th.addEventListener('click', () => {
+
+    const total = rows.reduce((sum, row) => {
+
+        const value = parseFloat(
+            String(row[column] || '').replace(/,/g, '')
+        );
+
+        return sum + (isNaN(value) ? 0 : value);
+
+    }, 0);
+
+    th.innerHTML =
+        `${column}<br><small>Σ ${total.toLocaleString()}</small>`;
+}); resultsHead.appendChild(header); const fragment = document.createDocumentFragment(); rows.forEach((row) => { const tr = document.createElement('tr'); state.columns.forEach((column) => { const td = document.createElement('td');
       const preview = document.createElement('div');preview.className = 'cell-preview';preview.textContent = row[column] ?? '';
       td.appendChild(preview);tr.appendChild(td);}); fragment.appendChild(tr); }); resultsBody.appendChild(fragment);
 
