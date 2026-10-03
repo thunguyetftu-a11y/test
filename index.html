@@ -1,44 +1,104 @@
 <!DOCTYPE html>
-<html lang=<head>
-
-  
-
-  <script>
-    <!-- Google Analytics -->
-  https://www.googletagmanager.com/gtag/js?id=G-2SG1LSY4TSscript>
-    window.dataLayer = window.dataLayer || [];
-
-    function gtag() {
-      dataLayer.push(arguments);
-    }
-
-    gtag('js', new Date());
-
-    gtag('config', 'G-2SG1LSY4TS');
-  </script>
-
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>APS Visit History Data</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="styles.css?v=20" />
     <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
-    <!--Microsoft Clarity-->
     <script type="text/javascript">
-    (function(c,l,a,r,i,t,y){
-        c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
-        t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
-        y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
-    })(window, document, "clarity", "script", "ylachn1qi5");
-</script>
+      (function(c, l, a, r, i, t, y) {
+        c[a] = c[a] || function() {
+          (c[a].q = c[a].q || []).push(arguments);
+        };
+        t = l.createElement(r);
+        t.async = 1;
+        t.src = 'https://www.clarity.ms/tag/' + i;
+        y = l.getElementsByTagName(r)[0];
+        y.parentNode.insertBefore(t, y);
+      })(window, document, 'clarity', 'script', 'ylachn1qi5');
+    </script>
   </head>
   <body>
-    <div id="login-screen" class="screen active"><div class="login-card"><div class="brand-block"><span class="badge">APS</span><h1>Access Visit Library</h1></div><p class="muted">Only authorized person can access the data library.</p><form id="login-form" novalidate><label class="input-label" for="passcode">Passcode</label><input id="passcode" name="passcode" type="password" inputmode="numeric" maxlength="6" pattern="[0-9]*" placeholder="Enter passcode" autocomplete="one-time-code" required /><button type="submit" class="primary-btn">Access data</button></form><p id="login-message" class="status-message" aria-live="polite"></p></div></div>
-    <div id="app-screen" class="screen"><header class="topbar"><div><p class="eyebrow">INTERNAL USE ONLY</p><h2>APS Visit History Data</h2></div><div class="topbar-actions"><button id="refresh-btn" class="ghost-btn" type="button">Refresh</button><button id="top-search-btn" class="primary-btn" type="button">Search</button><button id="logout-btn" class="ghost-btn" type="button">Log out</button></div></header><main class="layout"><aside class="filters-panel"><div class="panel-header"><h3>Search filters</h3><button id="reset-search-btn" class="ghost-btn small" type="button">Reset</button></div><div id="filters-container"></div><button id="search-btn" class="primary-btn full-width" type="button">Search</button></aside><section class="results-panel"><div class="results-toolbar"><div><p class="eyebrow">Results</p><h3 id="result-title">Loading data...</h3></div></div><div class="table-wrapper"><div id="results-status" class="results-status">Waiting for search.</div><table class="results-table"><thead id="results-head"></thead><tbody id="results-body"></tbody></table></div></section></main></div>
-    <div id="detail-modal" class="detail-modal" hidden aria-hidden="true"><div class="detail-backdrop" data-close-details></div><section class="detail-card" role="dialog" aria-modal="true" aria-labelledby="detail-title"><div class="detail-header"><h3 id="detail-title">Record details</h3><button class="ghost-btn small" type="button" data-close-details aria-label="Close details">Close</button></div><div id="detail-content" class="detail-content"></div></section></div>
+    <div id="login-screen" class="screen active" aria-hidden="false">
+      <form id="login-form" class="login-card" novalidate>
+        <div class="brand-block">
+          <span class="badge">APS</span>
+          <h1>Access Visit Library</h1>
+        </div>
+
+        <p class="muted">Only authorized person can access the data library.</p>
+
+        <div class="passcode-row">
+          <label for="passcode" id="passcode-label">Passcode</label>
+          <div class="passcode-control">
+            <input
+              id="passcode"
+              name="passcode"
+              type="password"
+              autocomplete="current-password"
+              inputmode="text"
+              placeholder="Enter passcode"
+              aria-describedby="login-message"
+            />
+            <button type="submit" class="button primary">Access data</button>
+          </div>
+        </div>
+
+        <p id="login-message" class="login-message" aria-live="polite"></p>
+      </form>
+    </div>
+
+    <div id="app-screen" class="screen" aria-hidden="true">
+      <header class="topbar" role="banner">
+        <div>
+          <p class="eyebrow">INTERNAL USE ONLY</p>
+          <h2>APS Visit History Data</h2>
+        </div>
+
+        <div class="topbar-actions">
+          <button type="button" id="refresh-btn" class="button secondary">Refresh</button>
+          <button type="button" id="search-btn" class="button secondary">Search</button>
+          <button type="button" id="logout-btn" class="button secondary">Log out</button>
+        </div>
+      </header>
+
+      <main class="layout" role="main">
+        <section id="filters-panel" class="filters-panel" aria-labelledby="search-filters-heading">
+          <h3 id="search-filters-heading">Search filters</h3>
+          <div id="filters-container" class="filters-container" aria-live="polite"></div>
+
+          <div class="filter-actions">
+            <button type="button" id="reset-search-btn" class="button secondary">Reset</button>
+            <button type="button" id="top-search-btn" class="button secondary">Search</button>
+          </div>
+        </section>
+
+        <section class="results-panel" aria-labelledby="result-title">
+          <h3 id="result-title">Loading data...</h3>
+          <p id="results-status" class="results-status" aria-live="polite">Waiting for search.</p>
+          <div class="table-wrapper">
+            <table class="results-table">
+              <thead id="results-head"></thead>
+              <tbody id="results-body"></tbody>
+            </table>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <div id="detail-modal" class="detail-modal" hidden aria-hidden="true">
+      <div class="detail-backdrop" data-close-details></div>
+      <section class="detail-card" role="dialog" aria-modal="true" aria-labelledby="detail-title">
+        <button id="detail-close" type="button" class="detail-close" aria-label="Close details">×</button>
+        <h3 id="detail-title">Record details</h3>
+        <div id="detail-content"></div>
+      </section>
+    </div>
+
     <script src="script.js?v=20"></script>
-    <script>(function(){const body=document.getElementById('results-body'),modal=document.getElementById('detail-modal'),content=document.getElementById('detail-content'),close=()=>{modal.hidden=true;modal.setAttribute('aria-hidden','true')},open=row=>{content.replaceChildren();Object.entries(row).forEach(([key,value])=>{const item=document.createElement('div');item.className='detail-item';const label=document.createElement('dt');label.textContent=key;const data=document.createElement('dd');data.textContent=value||'—';item.append(label,data);content.appendChild(item)});modal.hidden=false;modal.setAttribute('aria-hidden','false')};body.addEventListener('click',event=>{const row=event.target.closest('tr');if(row?.dataset.record)open(JSON.parse(row.dataset.record))});modal.addEventListener('click',event=>{if(event.target.matches('[data-close-details]'))close()});document.addEventListener('keydown',event=>{if(event.key==='Escape')close()});new MutationObserver(()=>{body.querySelectorAll('tr').forEach(row=>{if(row.dataset.record||row.querySelector('th'))return;const cells=[...row.cells],headers=[...document.querySelectorAll('#results-head th')];if(cells.length&&headers.length===cells.length){row.dataset.record=JSON.stringify(Object.fromEntries(headers.map((header,index)=>[header.textContent,cells[index].textContent])));row.tabIndex=0;row.setAttribute('aria-label','View record details')}})}).observe(body,{childList:true});body.addEventListener('keydown',event=>{if((event.key==='Enter'||event.key===' ')&&event.target.closest('tr')){event.preventDefault();event.target.closest('tr').click()}})})()</script>
   </body>
 </html>
