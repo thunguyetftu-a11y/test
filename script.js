@@ -1,581 +1,194 @@
-const SHEET_ID = '1uS-22GKtiiWrawzIUwsqrW6wOODuYDWwo3bbD_TFK48';
+const SHEET_ID = '18cubpnwvTxoiC8aVp-JmxAzldsnfK-86q2nTNp7vuiU';
 const MAIN_GID = '0';
 const SETTINGS_GID = '1384681035';
-const AUTH_SESSION_KEY = 'aps-data-library-authenticated';
-const CACHE_KEY = 'aps-data-library-cache-v2';
+const AUTH_SESSION_KEY = 'aps-visit-history-data-authenticated';
+const CACHE_KEY = 'aps-visit-history-data-cache-v2';
 const state = { columns: [], rows: [], passcode: null, ready: false };
 const $ = (id) => document.getElementById(id);
-
-const loginScreen = $('login-screen');
-const appScreen = $('app-screen');
-const loginForm = $('login-form');
-const loginMessage = $('login-message');
-const passcodeInput = $('passcode');
-const filtersContainer = $('filters-container');
-const resultsHead = $('results-head');
-const resultsBody = $('results-body');
-const resultsStatus = $('results-status');
-const resultTitle = $('result-title');
-
+const loginScreen = $('login-screen'); const appScreen = $('app-screen'); const loginForm = $('login-form');
+const loginMessage = $('login-message'); const passcodeInput = $('passcode'); const filtersContainer = $('filters-container');
+const resultsHead = $('results-head'); const resultsBody = $('results-body'); const resultsStatus = $('results-status'); const resultTitle = $('result-title');
 const csvBase = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=`;
-const DATE_COLUMNS = new Set(['INV Date', 'T&C Date', 'Ex-factory', 'Expiry date']);
-const HIDDEN_FILTERS = new Set(['total quantity', 'ex-factory', 'remark', 'model type 2']);
-const DROPDOWN_COLUMNS = new Set(['model type']);
-const NO_DROPDOWN_COLUMNS = new Set(['add', 'inv no.', 't&c pic']);
-
-function clean(value) {
-  return String(value ?? '').replace(/\uFEFF/g, '').trim();
-}
-
-function normalize(value) {
-  return clean(value)
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/đ/g, 'd');
-}
-
-async function fetchCsv(gid) {
-  const response = await fetch(`${csvBase}${gid}&_=${Date.now()}`, { cache: 'no-store' });
-  if (!response.ok) throw new Error(`Google Sheet request failed: ${response.status}`);
-  return response.text();
-}
-
-function readPasscode(rows) {
-  for (const row of rows) {
-    for (let i = 0; i < row.length - 1; i += 1) {
-      if (normalize(row[i]) === 'passcode' && clean(row[i + 1])) {
-        return clean(row[i + 1]);
-      }
-    }
-  }
-  return null;
-}
-
+const DATE_COLUMNS = new Set(['Actual Working date']);
+const HIDDEN_FILTERS = new Set(['visit', 'error area', 'error component', 'error type','task id','visited date','finished date','customer contact','task status']);
+const DROPDOWN_COLUMNS = new Set(['project','business category','fy','actual month']);
+const NO_DROPDOWN_COLUMNS=new Set(['description','work details','employees']);
+function clean(value) { return String(value ?? '').replace(/\uFEFF/g, '').trim(); }
+function normalize(value) { return clean(value).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd'); }
+async function fetchCsv(gid) { const response = await fetch(`${csvBase}${gid}&_=${Date.now()}`, { cache: 'no-store' }); if (!response.ok) throw new Error(`Google Sheet request failed: ${response.status}`); return response.text(); }
+function readPasscode(rows) { for (const row of rows) for (let i = 0; i < row.length - 1; i += 1) if (normalize(row[i]) === 'passcode' && clean(row[i + 1])) return clean(row[i + 1]); return null; }
 function applyData(settingsText, mainText) {
-  const settings = Papa.parse(settingsText, { skipEmptyLines: true }).data;
-  const parsedMain = Papa.parse(mainText, { skipEmptyLines: true }).data;
-
-  state.passcode = readPasscode(settings);
-  if (!state.passcode) throw new Error('Passcode was not found in Settings.');
-  if (!parsedMain.length) throw new Error('Main sheet is empty.');
-
-  state.columns = parsedMain[0].map(clean).filter(Boolean);
-  state.rows = parsedMain.slice(1).map((row) => Object.fromEntries(
-    state.columns.map((column, index) => [column, row[index] ?? ''])
-  ));
-
-  state.ready = true;
-  renderFilters();
+  const settings = Papa.parse(settingsText, { skipEmptyLines: true }).data; const parsedMain = Papa.parse(mainText, { skipEmptyLines: true }).data;
+  state.passcode = readPasscode(settings); if (!state.passcode) throw new Error('Passcode was not found in Settings.'); if (!parsedMain.length) throw new Error('Main sheet is empty.');
+  state.columns = parsedMain[0].map(clean).filter(Boolean); state.rows = parsedMain.slice(1).map((row) => Object.fromEntries(state.columns.map((column, index) => [column, row[index] ?? '']))); state.ready = true; renderFilters(); resultTitle.textContent = `${state.rows.length} records loaded`;
 }
-
-function readCache() {
-  try {
-    const cached = JSON.parse(sessionStorage.getItem(CACHE_KEY) || 'null');
-    if (!cached?.settingsText || !cached?.mainText) return false;
-    applyData(cached.settingsText, cached.mainText);
-    return true;
-  } catch (error) {
-    console.error('Failed to read cache', error);
-    return false;
-  }
-}
-
+function readCache() { try { const cached = JSON.parse(sessionStorage.getItem(CACHE_KEY) || 'null'); if (!cached?.settingsText || !cached?.mainText) return false; applyData(cached.settingsText, cached.mainText); resultsStatus.textContent = 'Cached data ready. Updating in background...'; return true; } catch (error) { sessionStorage.removeItem(CACHE_KEY); return false; } }
 async function loadData({ preserveView = true } = {}) {
-  const hadCachedData = state.ready || readCache();
-  if (!hadCachedData) {
-    resultsStatus.textContent = 'Loading data...';
-  }
-
-  try {
-    const [settingsText, mainText] = await Promise.all([
-      fetchCsv(SETTINGS_GID),
-      fetchCsv(MAIN_GID),
-    ]);
-
-    applyData(settingsText, mainText);
-    sessionStorage.setItem(CACHE_KEY, JSON.stringify({ settingsText, mainText }));
-
-    if (preserveView && sessionStorage.getItem(AUTH_SESSION_KEY) === 'state.passcode') {
-      showApp();
-    }
-
-    const filters = getCriteria();
-    const rows = state.rows.filter((row) => matches(row, filters));
-    renderResults(rows);
-  } catch (error) {
-    console.error(error);
-    if (!hadCachedData) {
-      resultTitle.textContent = 'Data unavailable';
-      resultsStatus.textContent = 'Unable to load data. Check Google Sheet sharing.';
-      loginMessage.textContent = 'Unable to load data. Please check the Google Sheet sharing settings.';
-    }
-  }
+  const hadCachedData = state.ready || readCache(); if (!hadCachedData) resultsStatus.textContent = 'Loading data...';
+  try { const [settingsText, mainText] = await Promise.all([fetchCsv(SETTINGS_GID), fetchCsv(MAIN_GID)]); applyData(settingsText, mainText); sessionStorage.setItem(CACHE_KEY, JSON.stringify({ settingsText, mainText })); resultsStatus.textContent = 'Live data ready.'; if (
+    preserveView &&
+    sessionStorage.getItem(
+        AUTH_SESSION_KEY
+    ) === 'state.passcode'
+)
+{
+    showApp();
+}}
+  catch (error) { console.error(error); if (!hadCachedData) { resultTitle.textContent = 'Data unavailable'; resultsStatus.textContent = 'Unable to load data. Check Google Sheet sharing.'; loginMessage.textContent = 'The access code could not be loaded from Settings.'; } else resultsStatus.textContent = 'Showing cached data. Live update failed.'; }
 }
-
-function valuesFor(column) {
-  return [...new Set(state.rows.map((row) => clean(row[column])).filter(Boolean))].sort((a, b) => a.localeCompare(b));
-}
-
-function isDateColumn(column) {
-  return DATE_COLUMNS.has(column) || /date|time|created|updated/i.test(column);
-}
-
-function isHiddenFilter(column) {
-  return HIDDEN_FILTERS.has(normalize(column));
-}
-
+function valuesFor(column) { return [...new Set(state.rows.map((row) => clean(row[column])).filter(Boolean))].sort((a, b) => a.localeCompare(b)); }
+function isDateColumn(column) { return DATE_COLUMNS.has(column) || /date|time|created|updated/i.test(column); }
+function isHiddenFilter(column) { return HIDDEN_FILTERS.has(normalize(column)); }
 function isDropdownColumn(column) {
-  const name = normalize(column);
-  return !NO_DROPDOWN_COLUMNS.has(name) && (DROPDOWN_COLUMNS.has(name) || !isDateColumn(column));
+
+  const name =
+    normalize(column);
+
+  return (
+    !NO_DROPDOWN_COLUMNS.has(name) &&
+    (
+      DROPDOWN_COLUMNS.has(name) ||
+      !isDateColumn(column)
+    )
+  );
 }
-
 function makeOptions(column) {
-  const wrapper = document.createElement('div');
-  wrapper.className = 'filter-search-dropdown';
 
-  const dropdown = document.createElement('div');
-  dropdown.className = 'filter-dropdown';
+    const wrapper = document.createElement('div');
+    wrapper.className = 'filter-search-dropdown';
 
-  valuesFor(column).forEach((value) => {
-    const label = document.createElement('label');
-    label.className = 'option-item';
-    label.dataset.value = normalize(value);
+    const dropdown = document.createElement('div');
+    dropdown.className = 'filter-dropdown';
 
-    const checkbox = document.createElement('input');
-    checkbox.type = 'checkbox';
-    checkbox.dataset.column = column;
-    checkbox.value = value;
+    valuesFor(column).forEach((value) => {
 
-    const text = document.createElement('span');
-    text.textContent = value;
+        const label = document.createElement('label');
+        label.className = 'option-item';
 
-    label.append(checkbox, text);
-    dropdown.appendChild(label);
-  });
+        label.dataset.value = normalize(value);
 
-  wrapper.appendChild(dropdown);
-  return wrapper;
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.dataset.column = column;
+        checkbox.value = value;
+
+        const text = document.createElement('span');
+        text.textContent = value;
+
+        label.append(checkbox, text);
+
+        dropdown.appendChild(label);
+
+    });
+
+    wrapper.appendChild(dropdown);
+
+    return wrapper;
 }
 
 function renderFilters() {
-  filtersContainer.replaceChildren();
+  filtersContainer.replaceChildren(); state.columns.forEach((column) => { if (isHiddenFilter(column)) return; const group = document.createElement('div'); group.className = 'filter-group'; const title = document.createElement('h4'); title.textContent = column; group.appendChild(title); const inputs = document.createElement('div'); inputs.className = 'filter-inputs';
+    if (isDateColumn(column)) { const range = document.createElement('div'); range.className = 'date-range'; const from = document.createElement('input'); from.type = 'date'; from.dataset.dateStart = column; from.title = 'From'; const to = document.createElement('input'); to.type = 'date'; to.dataset.dateEnd = column; to.title = 'To'; range.append(from, to); inputs.appendChild(range); }
+    else {const search = document.createElement('input');
+search.type = 'text';
+search.placeholder = `Search ${column}`;
+search.dataset.column = column;
 
-  state.columns.forEach((column) => {
-    if (isHiddenFilter(column)) return;
+const container = document.createElement('div');
+container.className = 'search-dropdown-container';
 
-    const group = document.createElement('div');
-    group.className = 'filter-group';
-    group.dataset.filterColumn = column;
+container.appendChild(search);
 
-    const inputs = document.createElement('div');
-    inputs.className = 'filter-inputs';
+if (isDropdownColumn(column)) {
 
-    if (isDateColumn(column)) {
-      const range = document.createElement('div');
-      range.className = 'date-range';
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'dropdown-arrow';
+    button.innerHTML = '▼';
 
-      const from = document.createElement('input');
-      from.type = 'date';
-      from.dataset.column = column;
-      from.dataset.filterType = 'from';
-      from.placeholder = 'From';
+    const dropdown = makeOptions(column);
 
-      const to = document.createElement('input');
-      to.type = 'date';
-      to.dataset.column = column;
-      to.dataset.filterType = 'to';
-      to.placeholder = 'To';
+    button.addEventListener('click', () => {
 
-      from.addEventListener('input', search);
-      to.addEventListener('input', search);
+        dropdown.classList.toggle('open');
 
-      range.append(from, to);
-      inputs.appendChild(range);
-    } else {
-      const searchInput = document.createElement('input');
-      searchInput.type = 'text';
-      searchInput.placeholder = `Search ${column}`;
-      searchInput.dataset.column = column;
-      searchInput.addEventListener('input', search);
+    });
 
-      const container = document.createElement('div');
-      container.className = 'search-dropdown-container';
-      container.appendChild(searchInput);
+    search.addEventListener('input', () => {
 
-      if (isDropdownColumn(column)) {
-        const button = document.createElement('button');
-        button.type = 'button';
-        button.className = 'dropdown-arrow';
-        button.innerHTML = '▼';
+        const keyword = normalize(search.value);
 
-        const dropdown = makeOptions(column);
+        dropdown.classList.add('open');
 
-        button.addEventListener('click', () => {
-          dropdown.classList.toggle('open');
+        dropdown
+        .querySelectorAll('.option-item')
+        .forEach(item => {
+
+            const value = item.dataset.value;
+
+            item.style.display =
+                !keyword || value.includes(keyword)
+                    ? ''
+                    : 'none';
+
         });
 
-        searchInput.addEventListener('input', () => {
-          const keyword = normalize(searchInput.value);
-          dropdown.classList.add('open');
-          dropdown.querySelectorAll('.option-item').forEach((item) => {
-            const value = item.dataset.value || '';
-            item.style.display = !keyword || value.includes(keyword) ? '' : 'none';
-          });
-        });
+    });
 
-        container.appendChild(button);
-        container.appendChild(dropdown);
-      }
+    container.appendChild(button);
+    container.appendChild(dropdown);
+}
 
-      inputs.appendChild(container);
-    }
+inputs.appendChild(container);  inputs.appendChild(search); search.addEventListener('input', () => {
+const dropdown =inputs.querySelector('.value-dropdown');
+if (!dropdown) return;const keyword =normalize(search.value);
+const items =dropdown.querySelectorAll('.option-item');
+if (!keyword) {items.forEach(item => {item.style.display = '';});
+dropdown.open = false;return;}dropdown.open = true;items.forEach(item => {
 
-    group.appendChild(inputs);
-    filtersContainer.appendChild(group);
+const value =item.dataset.value || '';item.style.display =value.includes(keyword)? ''
+: 'none';});});}
+    group.appendChild(inputs); filtersContainer.appendChild(group);
   });
 }
-
-function keywords(value) {
-  const text = normalize(value);
-  return text ? [text] : [];
-}
-
-function matchSearch(text, search) {
-  if (!text || !search) return false;
-
-  text = normalize(text);
-  search = normalize(search);
-
-  if (search.startsWith('*') && search.endsWith('*')) {
-    const parts = search
-      .slice(1, -1)
-      .split('*')
-      .map((item) => item.trim())
-      .filter(Boolean);
-    return parts.every((part) => text.includes(part));
-  }
-
-  const words = search.split(/\s+/).filter(Boolean);
-  return words.every((word) => text.includes(word));
-}
-
-function toDate(value) {
-  const text = clean(value);
-  if (/^\d{4}-\d{2}-\d{2}$/.test(text)) return text;
-
-  const match = text.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
-  if (match) {
-    return `${match[3]}-${match[2]}-${match[1]}`;
-  }
-
-  return '';
-}
-
+function keywords(value) { const text=normalize(value); return text ? [text]:[]; }
+function matchSearch(text,search){if (!text || !search) {return false;}
+ text = normalize(text);search=normalize(search);//*long*thanh*
+if(search.startsWith('*')&&search.endsWith('*')){const parts=search.slice(1,-1).split('*').map(item=>item.trim()).filter(Boolean);return parts.every(part=>text.includes(part));}//mac dinh tim dung cum
+const words=search.split(/\s+/).filter(Boolean); return words.every(word=>
+text.includes(word));}
+function toDate(value) { const text = clean(value); if (/^\d{4}-\d{2}-\d{2}$/.test(text)) return text; const match = text.match(/^(\d{2})\/(\d{2})\/(\d{4})$/); if (match) return `${match[3]}-${match[2]}-${match[1]}`; const date = new Date(text); return Number.isNaN(date.getTime()) ? null : date.toISOString().slice(0, 10); }
 function getCriteria() {
-  const filters = {};
-
-  state.columns.forEach((column) => {
-    if (isHiddenFilter(column)) {
-      filters[column] = { text: [], selected: [], from: '', to: '' };
-      return;
-    }
-
-    const textInputs = [...document.querySelectorAll(`input[data-column="${column}"][type="text"]`)].filter(
-      (input) => !input.classList.contains('header-filter-input')
-    );
-
-    const selected = [...document.querySelectorAll(`input[data-column="${column}"][type="checkbox"]:checked`)]
-      .map((input) => normalize(input.value));
-
-    const textValues = textInputs
-      .map((input) => clean(input.value))
-      .filter(Boolean)
-      .flatMap((value) => value.split(/\s+/).filter(Boolean));
-
-    const fromInput = document.querySelector(`input[data-column="${column}"][data-filter-type="from"]`);
-    const toInput = document.querySelector(`input[data-column="${column}"][data-filter-type="to"]`);
-
-    filters[column] = {
-      text: textValues,
-      selected,
-      from: fromInput ? fromInput.value : '',
-      to: toInput ? toInput.value : '',
-    };
-  });
-
-  return filters;
+  return Object.fromEntries(state.columns.map((column) => { if (isHiddenFilter(column)) return [column, { text: [], selected: [], from: '', to: '' }]; const search = [...document.querySelectorAll('input[type="text"][data-column]')].find((input) => input.dataset.column === column); const selected = [...document.querySelectorAll('input[type="checkbox"][data-column]')].filter((input) => input.dataset.column === column && input.checked).map((input) => normalize(input.value)); const from = [...document.querySelectorAll('[data-date-start]')].find((input) => input.dataset.dateStart === column); const to = [...document.querySelectorAll('[data-date-end]')].find((input) => input.dataset.dateEnd === column); return [column, { text: keywords(search?.value), selected, from: from?.value || '', to: to?.value || '' }]; }));
 }
-
-function hasActiveCriteria(filters) {
-  return Object.values(filters).some((filter) => filter.text.length || filter.selected.length || filter.from || filter.to);
-}
-
-function matches(row, filters) {
-  return state.columns.every((column) => {
-    const filter = filters[column] || { text: [], selected: [], from: '', to: '' };
-    const value = normalize(row[column]);
-
-    if (filter.selected.length) {
-      if (!filter.selected.includes(value)) return false;
-    } else if (filter.text.length && !filter.text.some((term) => matchSearch(value, term))) {
-      return false;
-    }
-
-    if (filter.from || filter.to) {
-      const date = toDate(row[column]);
-      if (!date || (filter.from && date < filter.from) || (filter.to && date > filter.to)) {
-        return false;
-      }
-    }
-
-    return true;
-  });
-}
-
-function validateExtendYear() {
-  const column = state.columns.find((item) => normalize(item) === 'extend year');
-  if (!column) return true;
-
-  const input = [...document.querySelectorAll('input[data-column="extend year"]')].find((el) => el.type === 'text');
-  if (!input) return true;
-
-  const value = clean(input.value);
-  if (!value) return true;
-
-  const year = Number(value);
-  if (Number.isNaN(year) || year < 2020 || year > 2100) {
-    resultsStatus.textContent = 'Extend year must be a valid year between 2020 and 2100.';
-    return false;
-  }
-
-  return true;
-}
-
+function hasActiveCriteria(filters) { return Object.values(filters).some((filter) => filter.text.length || filter.selected.length || filter.from || filter.to); }
+function matches(row, filters) { return state.columns.every((column) => { const filter = filters[column]; const value = normalize(row[column]); // ưu tiên checkbox
+if (filter.selected.length) {if (!filter.selected.includes(value))return false;}
+else {if (filter.text.length &&!filter.text.some(term =>matchSearch(value, term))
+) {return false;}}if (filter.from || filter.to) {const date = toDate(row[column]);if (!date ||
+(filter.from && date < filter.from) ||(filter.to && date > filter.to)) {return false;}}return true;});}
+ 
+function validateExtendYear() { const column = state.columns.find((item) => normalize(item) === 'extend year'); if (!column) return true; const input = [...document.querySelectorAll('input[type="text"][data-column]')].find((item) => item.dataset.column === column); const value = clean(input?.value); if (value && !/^\d+(\.\d+)?$/.test(value)) { alert('Extend year must contain a decimal number only, for example 1 or 1.5.'); input.focus(); return false; } return true; }
 function renderResults(rows) {
-  resultsHead.replaceChildren();
-  resultsBody.replaceChildren();
+  resultsHead.replaceChildren(); resultsBody.replaceChildren(); if (!rows.length) { resultTitle.textContent = 'No results'; resultsStatus.textContent = 'No matching records were found.'; resultsBody.innerHTML = '<tr><td colspan="100%"><div class="empty-state">No matching data found.</div></td></tr>'; return; }
+  resultTitle.textContent = `${rows.length} result${rows.length === 1 ? '' : 's'}`; resultsStatus.textContent = 'Results updated.'; const header = document.createElement('tr'); state.columns.forEach((column) => { const th = document.createElement('th'); th.textContent = column; header.appendChild(th); }); resultsHead.appendChild(header); const fragment = document.createDocumentFragment(); rows.forEach((row) => { const tr = document.createElement('tr'); state.columns.forEach((column) => { const td = document.createElement('td');
+      const preview = document.createElement('div');preview.className = 'cell-preview';preview.textContent = row[column] ?? '';
+      td.appendChild(preview);tr.appendChild(td);}); fragment.appendChild(tr); }); resultsBody.appendChild(fragment);
 
-  if (!rows.length) {
-    resultTitle.textContent = 'No results';
-    resultsStatus.textContent = 'No matching records were found.';
-    resultsHead.innerHTML = '';
-    resultsBody.innerHTML = '';
-    return;
-  }
-
-  resultTitle.textContent = `${rows.length} result${rows.length === 1 ? '' : 's'}`;
-  resultsStatus.textContent = 'Results updated.';
-
-  const header = document.createElement('tr');
-  state.columns.forEach((column) => {
-    const th = document.createElement('th');
-    th.textContent = column;
-    th.className = 'result-header-cell';
-    th.style.cursor = 'pointer';
-    th.title = 'Click to filter by this column';
-    th.dataset.column = column;
-
-    th.addEventListener('click', () => {
-      makeHeaderEditable(th, column);
-    });
-
-    header.appendChild(th);
-  });
-
-  resultsHead.appendChild(header);
-
-  const fragment = document.createDocumentFragment();
-  rows.forEach((row) => {
-    const tr = document.createElement('tr');
-    state.columns.forEach((column) => {
-      const td = document.createElement('td');
-      const preview = document.createElement('div');
-      preview.className = 'cell-preview';
-      preview.textContent = row[column] ?? '';
-      td.appendChild(preview);
-      tr.appendChild(td);
-    });
-    fragment.appendChild(tr);
-  });
-
-  resultsBody.appendChild(fragment);
 }
+function search() { if (!state.ready) { resultsStatus.textContent = 'Data is still loading. Please try again in a moment.'; return; } if (!validateExtendYear()) return; const filters = getCriteria(); if (!hasActiveCriteria(filters)) { resultsHead.replaceChildren(); resultsBody.replaceChildren(); resultTitle.textContent = 'Enter a search criterion'; resultsStatus.textContent = 'Enter a keyword, choose a value, or select a date range before searching.'; return; } renderResults(state.rows.filter((row) => matches(row, filters))); }
+function reset() { filtersContainer.querySelectorAll('input').forEach((input) => { input.checked = false; input.value = ''; }); resultsHead.replaceChildren(); resultsBody.replaceChildren(); resultTitle.textContent = 'Ready to search'; resultsStatus.textContent = 'Filters reset.'; }
+function showApp() { loginScreen.classList.remove('active'); appScreen.classList.add('active'); }
+function showLogin() { appScreen.classList.remove('active'); loginScreen.classList.add('active'); passcodeInput.value = ''; passcodeInput.focus(); }
+loginForm.addEventListener('submit', (event) => { event.preventDefault(); const entered = clean(passcodeInput.value); if (!state.passcode) { loginMessage.textContent = 'Passcode is unavailable. Check Google Sheet sharing.'; return; } if (entered !== state.passcode) { loginMessage.textContent = 'The passcode is incorrect. Please try again.'; return; } sessionStorage.setItem(AUTH_SESSION_KEY, state.passcode); loginMessage.textContent = ''; showApp(); });
+$('search-btn')?.addEventListener('click', search); $('top-search-btn')?.addEventListener('click', search); $('reset-search-btn')?.addEventListener('click', reset);
+$('refresh-btn')?.addEventListener('click', async () => { const button = $('refresh-btn'); button.disabled = true; button.textContent = 'Refreshing...'; await loadData({ preserveView: true }); button.disabled = false; button.textContent = 'Refresh'; });
+$('logout-btn')?.addEventListener('click', () => { sessionStorage.removeItem(AUTH_SESSION_KEY); showLogin(); }); passcodeInput.addEventListener('input', (event) => { event.target.value = event.target.value.replace(/\D/g, '').slice(0, 6); }); document.addEventListener('keydown', (event) => { if (event.key === 'Enter' && appScreen.classList.contains('active')) search(); });
+const usedCache = readCache(); loadData({ preserveView: true, background: usedCache });
+const rect = container.getBoundingClientRect();
 
-function makeHeaderEditable(headerCell, column) {
-  if (headerCell.querySelector('input')) return;
-
-  const originalText = headerCell.textContent;
-  headerCell.textContent = '';
-
-  const input = document.createElement('input');
-  input.type = 'text';
-  input.className = 'header-filter-input';
-  input.placeholder = `Filter ${column}...`;
-  input.value = '';
-  input.autocomplete = 'off';
-
-  const submitBtn = document.createElement('button');
-  submitBtn.textContent = '✓';
-  submitBtn.className = 'header-filter-submit';
-  submitBtn.type = 'button';
-  submitBtn.title = 'Apply filter';
-
-  const cancelBtn = document.createElement('button');
-  cancelBtn.textContent = '✕';
-  cancelBtn.className = 'header-filter-cancel';
-  cancelBtn.type = 'button';
-  cancelBtn.title = 'Cancel';
-
-  const container = document.createElement('div');
-  container.className = 'header-filter-container';
-  container.append(input, submitBtn, cancelBtn);
-
-  headerCell.appendChild(container);
-  input.focus();
-
-  const resetHeader = () => {
-    headerCell.textContent = originalText;
-    headerCell.style.cursor = 'pointer';
-    headerCell.title = 'Click to filter by this column';
-  };
-
-  const applyFilter = () => {
-    const filterValue = input.value.trim();
-    resetHeader();
-
-    if (!filterValue) {
-      const filterInput = [...document.querySelectorAll(`input[data-column="${column}"][type="text"]`)].find(
-        (el) => !el.classList.contains('header-filter-input')
-      );
-      if (filterInput) {
-        filterInput.value = '';
-        filterInput.dispatchEvent(new Event('input', { bubbles: true }));
-      }
-      search();
-      return;
-    }
-
-    const filterInput = [...document.querySelectorAll(`input[data-column="${column}"][type="text"]`)].find(
-      (el) => !el.classList.contains('header-filter-input')
-    );
-
-    if (filterInput) {
-      filterInput.value = filterValue;
-      filterInput.dispatchEvent(new Event('input', { bubbles: true }));
-    }
-
-    search();
-  };
-
-  submitBtn.addEventListener('click', applyFilter);
-  cancelBtn.addEventListener('click', resetHeader);
-  input.addEventListener('keypress', (event) => {
-    if (event.key === 'Enter') applyFilter();
-  });
-  input.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape') resetHeader();
-  });
-}
-
-function search() {
-  if (!state.ready) {
-    resultsStatus.textContent = 'Data is still loading. Please try again in a moment.';
-    return;
-  }
-
-  if (!validateExtendYear()) return;
-
-  const filters = getCriteria();
-  const rows = state.rows.filter((row) => matches(row, filters));
-  renderResults(rows);
-}
-
-function reset() {
-  filtersContainer.querySelectorAll('input').forEach((input) => {
-    input.checked = false;
-    input.value = '';
-  });
-
-  resultsHead.replaceChildren();
-  resultsBody.replaceChildren();
-  resultTitle.textContent = 'No results';
-  resultsStatus.textContent = 'Filters reset.';
-
-  if (state.ready) {
-    renderResults(state.rows);
-  }
-}
-
-function showApp() {
-  loginScreen.classList.remove('active');
-  appScreen.classList.add('active');
-}
-
-function showLogin() {
-  appScreen.classList.remove('active');
-  loginScreen.classList.add('active');
-  passcodeInput.value = '';
-  passcodeInput.focus();
-}
-
-loginForm.addEventListener('submit', (event) => {
-  event.preventDefault();
-  const entered = clean(passcodeInput.value);
-
-  if (!state.passcode) {
-    loginMessage.textContent = 'Passcode is unavailable. Please refresh and try again.';
-    return;
-  }
-
-  if (entered === state.passcode) {
-    sessionStorage.setItem(AUTH_SESSION_KEY, 'state.passcode');
-    showApp();
-    loginMessage.textContent = '';
-  } else {
-    loginMessage.textContent = 'Incorrect passcode.';
-  }
-});
-
-$('search-btn')?.addEventListener('click', search);
-$('top-search-btn')?.addEventListener('click', search);
-$('reset-search-btn')?.addEventListener('click', reset);
-
-$('refresh-btn')?.addEventListener('click', async () => {
-  const button = $('refresh-btn');
-  if (button) {
-    button.disabled = true;
-    button.textContent = 'Refreshing...';
-  }
-
-  await loadData({ preserveView: true });
-
-  if (button) {
-    button.disabled = false;
-    button.textContent = 'Refresh';
-  }
-});
-
-$('logout-btn')?.addEventListener('click', () => {
-  sessionStorage.removeItem(AUTH_SESSION_KEY);
-  showLogin();
-});
-
-passcodeInput.addEventListener('input', (event) => {
-  event.target.value = event.target.value.replace(/\s+/g, '').slice(0, 20);
-});
-
-const usedCache = readCache();
-loadData({ preserveView: true, background: usedCache });
-
-if (typeof window !== 'undefined') {
-  window.addEventListener('resize', () => {
-    const dropdowns = document.querySelectorAll('.filter-dropdown.open');
-    dropdowns.forEach((dropdown) => {
-      const container = dropdown.closest('.search-dropdown-container');
-      if (!container) return;
-      const rect = container.getBoundingClientRect();
-      dropdown.classList.toggle('dropdown-right', window.innerWidth - rect.right < 520);
-    });
-  });
+if (window.innerWidth - rect.right < 520) {
+    dropdown
+      .querySelector('.filter-dropdown')
+      .classList.add('dropdown-right');
 }
