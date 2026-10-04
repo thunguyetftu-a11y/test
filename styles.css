@@ -176,4 +176,37 @@ right:calc(100% + 8px);
 
 .option-item span{
     word-break:break-word;
+}/* Summary row */
+
+.results-table thead .summary-row th{
+    position:sticky;
+    top:0;
+
+    background:#fff7d6;
+    color:#103c8a;
+
+    font-weight:700;
+    text-align:right;
+
+    z-index:5;
+
+    border-bottom:2px solid #d6c47a;
+}
+
+/* Header row */
+
+.results-table thead .column-header-row th{
+    position:sticky;
+    top:34px;
+
+    background:#edf4ff;
+
+    z-index:4;
+}
+
+/* Maintain row interaction */
+
+.results-table tbody tr{
+    position:relative;
+    z-index:1;
 }
