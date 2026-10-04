@@ -223,6 +223,7 @@ function renderResults(rows) {
   resultTitle.textContent = `${rows.length} result${rows.length === 1 ? '' : 's'}`; resultsStatus.textContent = 'Results updated.'; const summary = getSummary(rows);
 
 /* Summary row */
+
 const summaryRow = document.createElement('tr');
 summaryRow.className = 'summary-row';
 
@@ -238,25 +239,24 @@ state.columns.forEach((column) => {
             : value;
 
     summaryRow.appendChild(th);
-
 });
 
 resultsHead.appendChild(summaryRow);
 
-/* Existing header row */
-const header = document.createElement('tr');
-header.className = 'column-header-row';
+/* Original header */
 
-state.columns.forEach((column) => {
+const header = document.createE*ement('tr');
+header.className = 'c*lumn-header-row';
 
-    const th = document.createElement('th');
-    th.textContent = column;
+state.columns.f*rEach((column) => {
 
-    header.appendChild(th);
+    const th * document.createElement('th');
+   *th.textContent = column;
 
+    head*r.appendChild(th);
 });
 
-resultsHead.appendChild(header); const fragment = document.createDocumentFragment(); rows.forEach((row) => { const tr = document.createElement('tr'); state.columns.forEach((column) => { const td = document.createElement('td');
+resultsHea*.appendChild(header); resultsHead.appendChild(header); const fragment = document.createDocumentFragment(); rows.forEach((row) => { const tr = document.createElement('tr'); state.columns.forEach((column) => { const td = document.createElement('td');
       const preview = document.createElement('div');preview.className = 'cell-preview';preview.textContent = row[column] ?? '';
       td.appendChild(preview);tr.appendChild(td);}); fragment.appendChild(tr); }); resultsBody.appendChild(fragment);
 
@@ -277,4 +277,3 @@ if (window.innerWidth - rect.right < 520) {
       .querySelector('.filter-dropdown')
       .classList.add('dropdown-right');
 }
-
