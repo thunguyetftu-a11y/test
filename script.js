@@ -240,7 +240,12 @@ function getColumnSummary(rows, column) {
 
     if (hasNumericValues) {
         const total = calculateColumnSum(rows, column);
-        return `<small>Σ ${total.toLocaleString()}</small>`;
+        // Format with 2 decimal places and thousands separator
+        const formattedTotal = total.toLocaleString('en-US', { 
+            minimumFractionDigits: 2, 
+            maximumFractionDigits: 2 
+        });
+        return `<small>Σ ${formattedTotal}</small>`;
     } else {
         // For text and date columns, show count
         const count = calculateColumnCount(rows, column);
